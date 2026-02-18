@@ -8,16 +8,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Edit, Image } from "lucide-react";
+import { Plus, Trash2, Edit, Image, MessageSquare, Mail, Eye, EyeOff, Clock } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
+
+type Tab = "listings" | "inquiries";
 
 const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
   const [properties, setProperties] = useState<any[]>([]);
+  const [inquiries, setInquiries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>("listings");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -51,7 +55,10 @@ const Dashboard = () => {
   }, [navigate]);
 
   useEffect(() => {
-    if (user) fetchProperties();
+    if (user) {
+      fetchProperties();
+      fetchInquiries();
+    }
   }, [user]);
 
   const fetchProperties = async () => {
@@ -59,6 +66,12 @@ const Dashboard = () => {
     const { data } = await supabase.from("properties").select("*").eq("landlord_id", user.id).order("created_at", { ascending: false });
     setProperties(data || []);
     setLoading(false);
+  };
+
+  const fetchInquiries = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("inquiries").select("*, properties(title)").eq("landlord_id", user.id).order("created_at", { ascending: false });
+    setInquiries(data || []);
   };
 
   const resetForm = () => {
@@ -77,6 +90,7 @@ const Dashboard = () => {
     setAcceptsVouchers(p.accepts_vouchers); setAmenitiesStr((p.amenities || []).join(", "));
     setExistingImages(p.images || []); setImageFiles([]);
     setShowForm(true);
+    setActiveTab("listings");
   };
 
   const uploadImages = async (files: File[]): Promise<string[]> => {
@@ -154,163 +168,267 @@ const Dashboard = () => {
     fetchProperties();
   };
 
+  const markRead = async (inquiryId: string) => {
+    await supabase.from("inquiries").update({ is_read: true }).eq("id", inquiryId);
+    fetchInquiries();
+  };
+
+  const deleteInquiry = async (inquiryId: string) => {
+    await supabase.from("inquiries").delete().eq("id", inquiryId);
+    fetchInquiries();
+  };
+
+  const unreadCount = inquiries.filter(i => !i.is_read).length;
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-serif font-bold text-foreground">Landlord Dashboard</h1>
-            <p className="text-muted-foreground">Manage your property listings</p>
+            <p className="text-muted-foreground">Manage your property listings and inquiries</p>
           </div>
-          <Button onClick={() => { resetForm(); setShowForm(!showForm); }}>
-            <Plus className="h-4 w-4 mr-2" /> {showForm ? "Cancel" : "Add Property"}
-          </Button>
+          {activeTab === "listings" && (
+            <Button onClick={() => { resetForm(); setShowForm(!showForm); }}>
+              <Plus className="h-4 w-4 mr-2" /> {showForm ? "Cancel" : "Add Property"}
+            </Button>
+          )}
         </div>
 
-        {showForm && (
-          <div className="bg-card rounded-lg border p-6 mb-8">
-            <h2 className="text-xl font-serif font-semibold text-foreground mb-4">
-              {editId ? "Edit Property" : "List New Property"}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="title">Property Title</Label>
-                  <Input id="title" value={title} onChange={e => setTitle(e.target.value)} required placeholder="Spacious 2BR in Garden District" />
-                </div>
-                <div>
-                  <Label htmlFor="propertyType">Property Type</Label>
-                  <select id="propertyType" value={propertyType} onChange={e => setPropertyType(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                    <option value="apartment">Apartment</option>
-                    <option value="house">House</option>
-                    <option value="townhouse">Townhouse</option>
-                    <option value="duplex">Duplex</option>
-                    <option value="condo">Condo</option>
-                  </select>
-                </div>
-                <div>
-                  <Label htmlFor="address">Street Address</Label>
-                  <Input id="address" value={address} onChange={e => setAddress(e.target.value)} required placeholder="123 Main St" />
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <Label htmlFor="city">City</Label>
-                    <Input id="city" value={city} onChange={e => setCity(e.target.value)} required />
-                  </div>
-                  <div>
-                    <Label htmlFor="state">State</Label>
-                    <Input id="state" value={state} onChange={e => setState(e.target.value)} required />
-                  </div>
-                  <div>
-                    <Label htmlFor="zip">ZIP</Label>
-                    <Input id="zip" value={zipCode} onChange={e => setZipCode(e.target.value)} placeholder="70112" />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="price">Monthly Rent ($)</Label>
-                  <Input id="price" type="number" value={price} onChange={e => setPrice(e.target.value)} required min="0" step="0.01" placeholder="1200" />
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <Label htmlFor="bedrooms">Beds</Label>
-                    <Input id="bedrooms" type="number" value={bedrooms} onChange={e => setBedrooms(e.target.value)} required min="0" />
-                  </div>
-                  <div>
-                    <Label htmlFor="bathrooms">Baths</Label>
-                    <Input id="bathrooms" type="number" value={bathrooms} onChange={e => setBathrooms(e.target.value)} required min="0" step="0.5" />
-                  </div>
-                  <div>
-                    <Label htmlFor="sqft">Sq Ft</Label>
-                    <Input id="sqft" type="number" value={squareFeet} onChange={e => setSquareFeet(e.target.value)} placeholder="900" />
-                  </div>
-                </div>
-              </div>
+        {/* Tabs */}
+        <div className="flex gap-1 mb-6 bg-muted rounded-lg p-1 w-fit">
+          <button
+            onClick={() => setActiveTab("listings")}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              activeTab === "listings" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Listings ({properties.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("inquiries")}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+              activeTab === "inquiries" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <MessageSquare className="h-3.5 w-3.5" />
+            Inquiries
+            {unreadCount > 0 && (
+              <span className="h-5 min-w-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
 
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} rows={4} placeholder="Describe the property, neighborhood, and any special features..." />
-              </div>
-
-              <div>
-                <Label htmlFor="amenities">Amenities (comma-separated)</Label>
-                <Input id="amenities" value={amenitiesStr} onChange={e => setAmenitiesStr(e.target.value)} placeholder="AC, Dishwasher, Parking, Laundry, Pet Friendly" />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="vouchers" checked={acceptsVouchers} onChange={e => setAcceptsVouchers(e.target.checked)} className="rounded" />
-                <Label htmlFor="vouchers">Accepts Housing Choice Vouchers</Label>
-              </div>
-
-              <div>
-                <Label>Property Photos</Label>
-                <div className="mt-1">
-                  <label className="flex items-center gap-2 cursor-pointer border-2 border-dashed border-border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                    <Image className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Click to upload images</span>
-                    <input type="file" multiple accept="image/*" className="hidden" onChange={e => setImageFiles(Array.from(e.target.files || []))} />
-                  </label>
-                  {imageFiles.length > 0 && <p className="text-xs text-muted-foreground mt-1">{imageFiles.length} file(s) selected</p>}
-                  {existingImages.length > 0 && (
-                    <div className="flex gap-2 mt-2 flex-wrap">
-                      {existingImages.map((img, i) => (
-                        <div key={i} className="relative w-16 h-16 rounded overflow-hidden">
-                          <img src={img} alt="" className="w-full h-full object-cover" />
-                          <button type="button" onClick={() => setExistingImages(prev => prev.filter((_, idx) => idx !== i))} className="absolute top-0 right-0 bg-destructive text-destructive-foreground rounded-full p-0.5">
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
+        {/* Listings Tab */}
+        {activeTab === "listings" && (
+          <>
+            {showForm && (
+              <div className="bg-card rounded-lg border p-6 mb-8">
+                <h2 className="text-xl font-serif font-semibold text-foreground mb-4">
+                  {editId ? "Edit Property" : "List New Property"}
+                </h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="title">Property Title</Label>
+                      <Input id="title" value={title} onChange={e => setTitle(e.target.value)} required placeholder="Spacious 2BR in Garden District" />
                     </div>
-                  )}
-                </div>
-              </div>
+                    <div>
+                      <Label htmlFor="propertyType">Property Type</Label>
+                      <select id="propertyType" value={propertyType} onChange={e => setPropertyType(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                        <option value="apartment">Apartment</option>
+                        <option value="house">House</option>
+                        <option value="townhouse">Townhouse</option>
+                        <option value="duplex">Duplex</option>
+                        <option value="condo">Condo</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="address">Street Address</Label>
+                      <Input id="address" value={address} onChange={e => setAddress(e.target.value)} required placeholder="123 Main St" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Label htmlFor="city">City</Label>
+                        <Input id="city" value={city} onChange={e => setCity(e.target.value)} required />
+                      </div>
+                      <div>
+                        <Label htmlFor="state">State</Label>
+                        <Input id="state" value={state} onChange={e => setState(e.target.value)} required />
+                      </div>
+                      <div>
+                        <Label htmlFor="zip">ZIP</Label>
+                        <Input id="zip" value={zipCode} onChange={e => setZipCode(e.target.value)} placeholder="70112" />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="price">Monthly Rent ($)</Label>
+                      <Input id="price" type="number" value={price} onChange={e => setPrice(e.target.value)} required min="0" step="0.01" placeholder="1200" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Label htmlFor="bedrooms">Beds</Label>
+                        <Input id="bedrooms" type="number" value={bedrooms} onChange={e => setBedrooms(e.target.value)} required min="0" />
+                      </div>
+                      <div>
+                        <Label htmlFor="bathrooms">Baths</Label>
+                        <Input id="bathrooms" type="number" value={bathrooms} onChange={e => setBathrooms(e.target.value)} required min="0" step="0.5" />
+                      </div>
+                      <div>
+                        <Label htmlFor="sqft">Sq Ft</Label>
+                        <Input id="sqft" type="number" value={squareFeet} onChange={e => setSquareFeet(e.target.value)} placeholder="900" />
+                      </div>
+                    </div>
+                  </div>
 
-              <Button type="submit" disabled={saving}>
-                {saving ? "Saving..." : (editId ? "Update Property" : "List Property")}
-              </Button>
-            </form>
-          </div>
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} rows={4} placeholder="Describe the property, neighborhood, and any special features..." />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="amenities">Amenities (comma-separated)</Label>
+                    <Input id="amenities" value={amenitiesStr} onChange={e => setAmenitiesStr(e.target.value)} placeholder="AC, Dishwasher, Parking, Laundry, Pet Friendly" />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="vouchers" checked={acceptsVouchers} onChange={e => setAcceptsVouchers(e.target.checked)} className="rounded" />
+                    <Label htmlFor="vouchers">Accepts Housing Choice Vouchers</Label>
+                  </div>
+
+                  <div>
+                    <Label>Property Photos</Label>
+                    <div className="mt-1">
+                      <label className="flex items-center gap-2 cursor-pointer border-2 border-dashed border-border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                        <Image className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Click to upload images</span>
+                        <input type="file" multiple accept="image/*" className="hidden" onChange={e => setImageFiles(Array.from(e.target.files || []))} />
+                      </label>
+                      {imageFiles.length > 0 && <p className="text-xs text-muted-foreground mt-1">{imageFiles.length} file(s) selected</p>}
+                      {existingImages.length > 0 && (
+                        <div className="flex gap-2 mt-2 flex-wrap">
+                          {existingImages.map((img, i) => (
+                            <div key={i} className="relative w-16 h-16 rounded overflow-hidden">
+                              <img src={img} alt="" className="w-full h-full object-cover" />
+                              <button type="button" onClick={() => setExistingImages(prev => prev.filter((_, idx) => idx !== i))} className="absolute top-0 right-0 bg-destructive text-destructive-foreground rounded-full p-0.5">
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <Button type="submit" disabled={saving}>
+                    {saving ? "Saving..." : (editId ? "Update Property" : "List Property")}
+                  </Button>
+                </form>
+              </div>
+            )}
+
+            {loading ? (
+              <div className="text-center py-12 text-muted-foreground">Loading your properties...</div>
+            ) : properties.length === 0 ? (
+              <div className="text-center py-12 bg-card rounded-lg border">
+                <p className="text-muted-foreground text-lg mb-2">No properties listed yet</p>
+                <p className="text-sm text-muted-foreground">Click "Add Property" to create your first listing</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {properties.map((p) => (
+                  <div key={p.id} className="bg-card rounded-lg border p-4 flex flex-col sm:flex-row gap-4">
+                    <div className="w-full sm:w-32 h-24 rounded-md overflow-hidden shrink-0">
+                      <img src={p.images?.[0] || "/placeholder.svg"} alt={p.title} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h3 className="font-semibold text-foreground">{p.title}</h3>
+                          <p className="text-sm text-muted-foreground">{p.address}, {p.city}</p>
+                        </div>
+                        <span className="text-secondary font-bold shrink-0">${Number(p.price).toLocaleString()}/mo</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                        <span>{p.bedrooms} bed · {p.bathrooms} bath</span>
+                        <span>·</span>
+                        <span className={p.is_available ? "text-accent" : "text-destructive"}>{p.is_available ? "Available" : "Unavailable"}</span>
+                      </div>
+                    </div>
+                    <div className="flex sm:flex-col gap-2 shrink-0">
+                      <Button variant="outline" size="sm" onClick={() => startEdit(p)}><Edit className="h-3.5 w-3.5" /></Button>
+                      <Button variant="outline" size="sm" onClick={() => toggleAvailability(p.id, p.is_available)}>
+                        {p.is_available ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-destructive" onClick={() => deleteProperty(p.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
 
-        {loading ? (
-          <div className="text-center py-12 text-muted-foreground">Loading your properties...</div>
-        ) : properties.length === 0 ? (
-          <div className="text-center py-12 bg-card rounded-lg border">
-            <p className="text-muted-foreground text-lg mb-2">No properties listed yet</p>
-            <p className="text-sm text-muted-foreground">Click "Add Property" to create your first listing</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {properties.map((p) => (
-              <div key={p.id} className="bg-card rounded-lg border p-4 flex flex-col sm:flex-row gap-4">
-                <div className="w-full sm:w-32 h-24 rounded-md overflow-hidden shrink-0">
-                  <img src={p.images?.[0] || "/placeholder.svg"} alt={p.title} className="w-full h-full object-cover" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-semibold text-foreground">{p.title}</h3>
-                      <p className="text-sm text-muted-foreground">{p.address}, {p.city}</p>
-                    </div>
-                    <span className="text-secondary font-bold shrink-0">${Number(p.price).toLocaleString()}/mo</span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                    <span>{p.bedrooms} bed · {p.bathrooms} bath</span>
-                    <span>·</span>
-                    <span className={p.is_available ? "text-accent" : "text-destructive"}>{p.is_available ? "Available" : "Unavailable"}</span>
-                  </div>
-                </div>
-                <div className="flex sm:flex-col gap-2 shrink-0">
-                  <Button variant="outline" size="sm" onClick={() => startEdit(p)}><Edit className="h-3.5 w-3.5" /></Button>
-                  <Button variant="outline" size="sm" onClick={() => toggleAvailability(p.id, p.is_available)}>
-                    {p.is_available ? "Hide" : "Show"}
-                  </Button>
-                  <Button variant="outline" size="sm" className="text-destructive" onClick={() => deleteProperty(p.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                </div>
+        {/* Inquiries Tab */}
+        {activeTab === "inquiries" && (
+          <>
+            {inquiries.length === 0 ? (
+              <div className="text-center py-12 bg-card rounded-lg border">
+                <MessageSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground text-lg mb-1">No inquiries yet</p>
+                <p className="text-sm text-muted-foreground">When tenants inquire about your properties, they'll appear here.</p>
               </div>
-            ))}
-          </div>
+            ) : (
+              <div className="space-y-3">
+                {inquiries.map((inq) => (
+                  <div
+                    key={inq.id}
+                    className={`bg-card rounded-lg border p-4 transition-all ${!inq.is_read ? "border-primary/30 bg-primary/[0.02]" : ""}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          {!inq.is_read && <span className="h-2 w-2 rounded-full bg-primary shrink-0" />}
+                          <h3 className="font-semibold text-foreground text-sm">{inq.tenant_name}</h3>
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {new Date(inq.created_at).toLocaleDateString()} {new Date(inq.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Re: <span className="font-medium text-foreground">{inq.properties?.title || "Property"}</span>
+                        </p>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{inq.message}</p>
+                        <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                          <a href={`mailto:${inq.tenant_email}`} className="flex items-center gap-1 hover:text-foreground transition-colors">
+                            <Mail className="h-3 w-3" /> {inq.tenant_email}
+                          </a>
+                          {inq.tenant_phone && (
+                            <a href={`tel:${inq.tenant_phone}`} className="hover:text-foreground transition-colors">
+                              📞 {inq.tenant_phone}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5 shrink-0">
+                        {!inq.is_read && (
+                          <Button variant="outline" size="sm" onClick={() => markRead(inq.id)} title="Mark as read">
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        <Button variant="outline" size="sm" className="text-destructive" onClick={() => deleteInquiry(inq.id)} title="Delete">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </main>
       <Footer />

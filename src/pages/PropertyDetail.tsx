@@ -4,13 +4,33 @@ import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Bed, Bath, Ruler, MapPin, BadgeCheck, Calendar, Home, Phone, Mail, ExternalLink } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Bed, Bath, Ruler, MapPin, BadgeCheck, Calendar, Home, Phone, Mail, ExternalLink, Send } from "lucide-react";
+import { z } from "zod";
+
+const inquirySchema = z.object({
+  name: z.string().trim().min(2, "Name is required").max(100),
+  email: z.string().trim().email("Valid email required").max(255),
+  phone: z.string().trim().max(20).optional().or(z.literal("")),
+  message: z.string().trim().min(10, "Message must be at least 10 characters").max(1000),
+});
 
 const PropertyDetail = () => {
   const { id } = useParams();
   const [property, setProperty] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [inquiryName, setInquiryName] = useState("");
+  const [inquiryEmail, setInquiryEmail] = useState("");
+  const [inquiryPhone, setInquiryPhone] = useState("");
+  const [inquiryMessage, setInquiryMessage] = useState("");
+  const [inquirySending, setInquirySending] = useState(false);
+  const [inquirySent, setInquirySent] = useState(false);
+  const [inquiryErrors, setInquiryErrors] = useState<Record<string, string>>({});
+  const { toast } = useToast();
 
   useEffect(() => {
     if (id) {
@@ -151,24 +171,91 @@ const PropertyDetail = () => {
           </div>
         </div>
 
-        {/* Description & amenities */}
-        <div className="mt-10 max-w-3xl">
-          {property.description && (
-            <div className="mb-8">
-              <h2 className="text-xl font-serif font-bold text-foreground mb-3">About This Property</h2>
-              <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{property.description}</p>
-            </div>
-          )}
-          {property.amenities && property.amenities.length > 0 && (
-            <div>
-              <h2 className="text-xl font-serif font-bold text-foreground mb-3">Amenities</h2>
-              <div className="flex flex-wrap gap-2">
-                {property.amenities.map((a: string, i: number) => (
-                  <span key={i} className="bg-muted text-foreground text-sm px-3 py-1.5 rounded-full">{a}</span>
-                ))}
+        {/* Description, amenities & inquiry form */}
+        <div className="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            {property.description && (
+              <div className="mb-8">
+                <h2 className="text-xl font-serif font-bold text-foreground mb-3">About This Property</h2>
+                <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{property.description}</p>
               </div>
-            </div>
-          )}
+            )}
+            {property.amenities && property.amenities.length > 0 && (
+              <div>
+                <h2 className="text-xl font-serif font-bold text-foreground mb-3">Amenities</h2>
+                <div className="flex flex-wrap gap-2">
+                  {property.amenities.map((a: string, i: number) => (
+                    <span key={i} className="bg-muted text-foreground text-sm px-3 py-1.5 rounded-full">{a}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Inquiry Form */}
+          <div className="bg-card rounded-lg border p-5">
+            <h3 className="font-serif font-semibold text-foreground text-lg mb-1">Inquire About This Property</h3>
+            <p className="text-xs text-muted-foreground mb-4">Send a message to the landlord</p>
+            {inquirySent ? (
+              <div className="text-center py-6">
+                <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-3">
+                  <Send className="h-5 w-5 text-accent" />
+                </div>
+                <p className="font-medium text-foreground mb-1">Inquiry Sent!</p>
+                <p className="text-xs text-muted-foreground">The landlord will respond to your email.</p>
+              </div>
+            ) : (
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                setInquiryErrors({});
+                const result = inquirySchema.safeParse({ name: inquiryName, email: inquiryEmail, phone: inquiryPhone, message: inquiryMessage });
+                if (!result.success) {
+                  const errs: Record<string, string> = {};
+                  result.error.issues.forEach(i => { const f = i.path[0] as string; if (!errs[f]) errs[f] = i.message; });
+                  setInquiryErrors(errs);
+                  return;
+                }
+                setInquirySending(true);
+                const { error } = await supabase.from("inquiries").insert({
+                  property_id: property.id,
+                  landlord_id: property.landlord_id,
+                  tenant_name: result.data.name,
+                  tenant_email: result.data.email,
+                  tenant_phone: result.data.phone || null,
+                  message: result.data.message,
+                });
+                setInquirySending(false);
+                if (error) {
+                  toast({ title: "Error", description: "Could not send inquiry. Please try again.", variant: "destructive" });
+                } else {
+                  setInquirySent(true);
+                }
+              }} className="space-y-3">
+                <div>
+                  <Label htmlFor="iqName" className="text-xs">Your Name</Label>
+                  <Input id="iqName" value={inquiryName} onChange={e => setInquiryName(e.target.value)} required placeholder="Jane Doe" maxLength={100} className="h-9 text-sm" />
+                  {inquiryErrors.name && <p className="text-xs text-destructive mt-0.5">{inquiryErrors.name}</p>}
+                </div>
+                <div>
+                  <Label htmlFor="iqEmail" className="text-xs">Email</Label>
+                  <Input id="iqEmail" type="email" value={inquiryEmail} onChange={e => setInquiryEmail(e.target.value)} required placeholder="you@example.com" maxLength={255} className="h-9 text-sm" />
+                  {inquiryErrors.email && <p className="text-xs text-destructive mt-0.5">{inquiryErrors.email}</p>}
+                </div>
+                <div>
+                  <Label htmlFor="iqPhone" className="text-xs">Phone (optional)</Label>
+                  <Input id="iqPhone" type="tel" value={inquiryPhone} onChange={e => setInquiryPhone(e.target.value)} placeholder="(504) 555-0123" maxLength={20} className="h-9 text-sm" />
+                </div>
+                <div>
+                  <Label htmlFor="iqMsg" className="text-xs">Message</Label>
+                  <Textarea id="iqMsg" value={inquiryMessage} onChange={e => setInquiryMessage(e.target.value)} required rows={3} placeholder="I'm interested in this property..." maxLength={1000} className="text-sm" />
+                  {inquiryErrors.message && <p className="text-xs text-destructive mt-0.5">{inquiryErrors.message}</p>}
+                </div>
+                <Button type="submit" className="w-full" size="sm" disabled={inquirySending}>
+                  <Send className="h-3.5 w-3.5 mr-2" /> {inquirySending ? "Sending..." : "Send Inquiry"}
+                </Button>
+              </form>
+            )}
+          </div>
         </div>
       </main>
       <Footer />

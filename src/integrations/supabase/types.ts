@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      inquiries: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          landlord_id: string
+          message: string
+          property_id: string
+          tenant_email: string
+          tenant_name: string
+          tenant_phone: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          landlord_id: string
+          message: string
+          property_id: string
+          tenant_email: string
+          tenant_name: string
+          tenant_phone?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          landlord_id?: string
+          message?: string
+          property_id?: string
+          tenant_email?: string
+          tenant_name?: string
+          tenant_phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inquiries_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           account_type: Database["public"]["Enums"]["account_type"]
