@@ -6,8 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Home, ArrowLeft } from "lucide-react";
+import { z } from "zod";
 
 type AccountType = "tenant" | "landlord";
+
+const registerSchema = z.object({
+  fullName: z.string().trim().min(2, "Full name must be at least 2 characters").max(100, "Full name must be less than 100 characters"),
+  entityId: z.string().trim().min(3, "Entity ID must be at least 3 characters").max(50, "Entity ID must be less than 50 characters").regex(/^[A-Za-z0-9\-_]+$/, "Entity ID must contain only letters, numbers, hyphens, or underscores"),
+  email: z.string().trim().email("Please enter a valid email address").max(255, "Email must be less than 255 characters"),
+  phone: z.string().trim().max(20, "Phone number is too long").regex(/^$|^\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{4}$/, "Please enter a valid phone number").optional().or(z.literal("")),
+  password: z.string().min(6, "Password must be at least 6 characters").max(72, "Password must be less than 72 characters"),
+});
 
 const Register = () => {
   const [email, setEmail] = useState("");
@@ -17,19 +26,30 @@ const Register = () => {
   const [phone, setPhone] = useState("");
   const [accountType, setAccountType] = useState<AccountType>("tenant");
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!entityId.trim()) {
-      toast({ title: "Entity ID Required", description: "You must provide a valid Entity ID to create an account.", variant: "destructive" });
+    setErrors({});
+
+    const result = registerSchema.safeParse({ fullName, entityId, email, phone, password });
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach((issue) => {
+        const field = issue.path[0] as string;
+        if (!fieldErrors[field]) fieldErrors[field] = issue.message;
+      });
+      setErrors(fieldErrors);
       return;
     }
+
+    const validated = result.data;
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
+      email: validated.email,
+      password: validated.password,
       options: { emailRedirectTo: window.location.origin },
     });
 
@@ -42,10 +62,10 @@ const Register = () => {
     if (data.user) {
       const { error: profileError } = await supabase.from("profiles").insert({
         user_id: data.user.id,
-        entity_id: entityId.trim(),
+        entity_id: validated.entityId,
         account_type: accountType,
-        full_name: fullName.trim(),
-        phone: phone.trim() || null,
+        full_name: validated.fullName,
+        phone: validated.phone || null,
       });
 
       if (profileError) {
@@ -106,24 +126,29 @@ const Register = () => {
           <form onSubmit={handleRegister} className="space-y-4">
             <div>
               <Label htmlFor="fullName">Full Name</Label>
-              <Input id="fullName" value={fullName} onChange={e => setFullName(e.target.value)} required placeholder="John Doe" />
+              <Input id="fullName" value={fullName} onChange={e => setFullName(e.target.value)} required placeholder="John Doe" maxLength={100} />
+              {errors.fullName && <p className="text-xs text-destructive mt-1">{errors.fullName}</p>}
             </div>
             <div>
               <Label htmlFor="entityId">Entity ID <span className="text-destructive">*</span></Label>
-              <Input id="entityId" value={entityId} onChange={e => setEntityId(e.target.value)} required placeholder="Enter your Entity ID" />
+              <Input id="entityId" value={entityId} onChange={e => setEntityId(e.target.value)} required placeholder="Enter your Entity ID" maxLength={50} />
               <p className="text-xs text-muted-foreground mt-1">Required for account creation. Contact HANO if you don't have one.</p>
+              {errors.entityId && <p className="text-xs text-destructive mt-1">{errors.entityId}</p>}
             </div>
             <div>
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@example.com" />
+              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@example.com" maxLength={255} />
+              {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
             </div>
             <div>
               <Label htmlFor="phone">Phone (optional)</Label>
-              <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(504) 555-0123" />
+              <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(504) 555-0123" maxLength={20} />
+              {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone}</p>}
             </div>
             <div>
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} placeholder="Min. 6 characters" />
+              <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} placeholder="Min. 6 characters" maxLength={72} />
+              {errors.password && <p className="text-xs text-destructive mt-1">{errors.password}</p>}
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating Account..." : `Create ${accountType === "tenant" ? "Tenant" : "Landlord"} Account`}
