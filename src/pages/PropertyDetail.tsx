@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Bed, Bath, Ruler, MapPin, BadgeCheck, Calendar, Home } from "lucide-react";
+import { ArrowLeft, Bed, Bath, Ruler, MapPin, BadgeCheck, Calendar, Home, Phone, Mail, ExternalLink } from "lucide-react";
 
 const PropertyDetail = () => {
   const { id } = useParams();
@@ -122,6 +122,31 @@ const PropertyDetail = () => {
 
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Calendar className="h-3.5 w-3.5" /> Listed {new Date(property.created_at).toLocaleDateString()}
+            </div>
+
+            {/* HANO Contact Card */}
+            <div className="bg-card rounded-lg border p-5 space-y-3">
+              <h3 className="font-serif font-semibold text-foreground text-sm">Need Voucher Assistance?</h3>
+              <p className="text-xs text-muted-foreground">Contact the Housing Authority of New Orleans for help with the Housing Choice Voucher Program.</p>
+              <div className="space-y-2 text-sm">
+                <a href="tel:504-670-3300" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+                  <Phone className="h-3.5 w-3.5 text-primary shrink-0" /> (504) 670-3300
+                </a>
+                <a href="mailto:info@hano.org" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+                  <Mail className="h-3.5 w-3.5 text-primary shrink-0" /> info@hano.org
+                </a>
+                <p className="flex items-start gap-2 text-muted-foreground text-xs">
+                  <MapPin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" /> 1555 Poydras St, New Orleans, LA 70112
+                </p>
+              </div>
+              <a
+                href="https://www.hano.org/housing-choice-voucher-program/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline mt-1"
+              >
+                Learn about HCVP <ExternalLink className="h-3 w-3" />
+              </a>
             </div>
           </div>
         </div>
