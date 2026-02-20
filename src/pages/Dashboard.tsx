@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getOwnerSignedUrl } from "@/hooks/use-signed-images";
+import { getFriendlyDbError } from "@/lib/errorMessages";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -176,7 +177,7 @@ const Dashboard = () => {
 
     setSaving(false);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: getFriendlyDbError(error.message), variant: "destructive" });
     } else {
       toast({ title: editId ? "Property updated!" : "Property listed!" });
       resetForm();
