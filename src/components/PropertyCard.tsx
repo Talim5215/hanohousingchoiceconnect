@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Bath, Bed, MapPin, Ruler, BadgeCheck } from "lucide-react";
+import { useSignedImageUrls } from "@/hooks/use-signed-images";
 
 interface PropertyCardProps {
   id: string;
@@ -17,7 +18,9 @@ interface PropertyCardProps {
 }
 
 const PropertyCard = ({ id, title, address, city, state, price, bedrooms, bathrooms, square_feet, property_type, accepts_vouchers, images }: PropertyCardProps) => {
-  const imageUrl = images && images.length > 0 ? images[0] : "/placeholder.svg";
+  const rawPaths = images && images.length > 0 ? [images[0]] : [];
+  const { signedUrls } = useSignedImageUrls(rawPaths);
+  const imageUrl = signedUrls[0] ?? "/placeholder.svg";
 
   return (
     <Link to={`/listings/${id}`} className="group block">
