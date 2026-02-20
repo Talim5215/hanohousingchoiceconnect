@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getOwnerSignedUrl } from "@/hooks/use-signed-images";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,35 @@ import { Plus, Trash2, Edit, Image, MessageSquare, Mail, Eye, EyeOff, Clock } fr
 import type { User } from "@supabase/supabase-js";
 
 type Tab = "listings" | "inquiries";
+
+/** Thumbnail that resolves a storage path to a signed URL for dashboard previews */
+const SignedThumb = ({ path, onRemove }: { path: string; onRemove: () => void }) => {
+  const [src, setSrc] = useState("/placeholder.svg");
+  useEffect(() => {
+    getOwnerSignedUrl(path).then(setSrc);
+  }, [path]);
+  return (
+    <div className="relative w-16 h-16 rounded overflow-hidden">
+      <img src={src} alt="" className="w-full h-full object-cover" />
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute top-0 right-0 bg-destructive text-destructive-foreground rounded-full p-0.5"
+      >
+        <Trash2 className="h-3 w-3" />
+      </button>
+    </div>
+  );
+};
+
+/** Property card thumbnail that resolves a storage path to a signed URL */
+const ListingThumb = ({ path, title }: { path: string; title: string }) => {
+  const [src, setSrc] = useState("/placeholder.svg");
+  useEffect(() => {
+    if (path) getOwnerSignedUrl(path).then(setSrc);
+  }, [path]);
+  return <img src={src} alt={title} className="w-full h-full object-cover" />;
+};
 
 const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -95,17 +125,17 @@ const Dashboard = () => {
 
   const uploadImages = async (files: File[]): Promise<string[]> => {
     if (!user) return [];
-    const urls: string[] = [];
+    const storagePaths: string[] = [];
     for (const file of files) {
       const ext = file.name.split(".").pop();
       const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage.from("property-images").upload(path, file);
       if (!error) {
-        const { data } = supabase.storage.from("property-images").getPublicUrl(path);
-        urls.push(data.publicUrl);
+        // Store the storage path — images are served via signed URLs, not public URLs
+        storagePaths.push(path);
       }
     }
-    return urls;
+    return storagePaths;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -115,8 +145,8 @@ const Dashboard = () => {
 
     let allImages = [...existingImages];
     if (imageFiles.length > 0) {
-      const newUrls = await uploadImages(imageFiles);
-      allImages = [...allImages, ...newUrls];
+      const newPaths = await uploadImages(imageFiles);
+      allImages = [...allImages, ...newPaths];
     }
 
     const propertyData = {
@@ -310,13 +340,12 @@ const Dashboard = () => {
                       {imageFiles.length > 0 && <p className="text-xs text-muted-foreground mt-1">{imageFiles.length} file(s) selected</p>}
                       {existingImages.length > 0 && (
                         <div className="flex gap-2 mt-2 flex-wrap">
-                          {existingImages.map((img, i) => (
-                            <div key={i} className="relative w-16 h-16 rounded overflow-hidden">
-                              <img src={img} alt="" className="w-full h-full object-cover" />
-                              <button type="button" onClick={() => setExistingImages(prev => prev.filter((_, idx) => idx !== i))} className="absolute top-0 right-0 bg-destructive text-destructive-foreground rounded-full p-0.5">
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            </div>
+                          {existingImages.map((imgPath, i) => (
+                            <SignedThumb
+                              key={i}
+                              path={imgPath}
+                              onRemove={() => setExistingImages(prev => prev.filter((_, idx) => idx !== i))}
+                            />
                           ))}
                         </div>
                       )}
@@ -342,7 +371,7 @@ const Dashboard = () => {
                 {properties.map((p) => (
                   <div key={p.id} className="bg-card rounded-lg border p-4 flex flex-col sm:flex-row gap-4">
                     <div className="w-full sm:w-32 h-24 rounded-md overflow-hidden shrink-0">
-                      <img src={p.images?.[0] || "/placeholder.svg"} alt={p.title} className="w-full h-full object-cover" />
+                      <ListingThumb path={p.images?.[0] || ""} title={p.title} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
@@ -378,49 +407,42 @@ const Dashboard = () => {
             {inquiries.length === 0 ? (
               <div className="text-center py-12 bg-card rounded-lg border">
                 <MessageSquare className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground text-lg mb-1">No inquiries yet</p>
-                <p className="text-sm text-muted-foreground">When tenants inquire about your properties, they'll appear here.</p>
+                <p className="text-muted-foreground text-lg mb-2">No inquiries yet</p>
+                <p className="text-sm text-muted-foreground">Tenant messages will appear here</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {inquiries.map((inq) => (
-                  <div
-                    key={inq.id}
-                    className={`bg-card rounded-lg border p-4 transition-all ${!inq.is_read ? "border-primary/30 bg-primary/[0.02]" : ""}`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
+                  <div key={inq.id} className={`bg-card rounded-lg border p-5 ${!inq.is_read ? "border-primary/30" : ""}`}>
+                    <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          {!inq.is_read && <span className="h-2 w-2 rounded-full bg-primary shrink-0" />}
-                          <h3 className="font-semibold text-foreground text-sm">{inq.tenant_name}</h3>
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {new Date(inq.created_at).toLocaleDateString()} {new Date(inq.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                          <span className="font-semibold text-foreground">{inq.tenant_name}</span>
+                          {!inq.is_read && (
+                            <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">New</span>
+                          )}
                         </div>
-                        <p className="text-xs text-muted-foreground mb-2">
-                          Re: <span className="font-medium text-foreground">{inq.properties?.title || "Property"}</span>
+                        <p className="text-xs text-muted-foreground mb-1">
+                          Re: <span className="font-medium">{inq.properties?.title || "Unknown property"}</span>
                         </p>
                         <p className="text-sm text-muted-foreground leading-relaxed">{inq.message}</p>
                         <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
                           <a href={`mailto:${inq.tenant_email}`} className="flex items-center gap-1 hover:text-foreground transition-colors">
                             <Mail className="h-3 w-3" /> {inq.tenant_email}
                           </a>
-                          {inq.tenant_phone && (
-                            <a href={`tel:${inq.tenant_phone}`} className="hover:text-foreground transition-colors">
-                              📞 {inq.tenant_phone}
-                            </a>
-                          )}
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> {new Date(inq.created_at).toLocaleDateString()}
+                          </span>
                         </div>
                       </div>
-                      <div className="flex gap-1.5 shrink-0">
+                      <div className="flex flex-col gap-2 shrink-0">
                         {!inq.is_read && (
-                          <Button variant="outline" size="sm" onClick={() => markRead(inq.id)} title="Mark as read">
-                            <Eye className="h-3.5 w-3.5" />
+                          <Button variant="outline" size="sm" onClick={() => markRead(inq.id)} className="text-xs">
+                            <Eye className="h-3 w-3 mr-1" /> Mark Read
                           </Button>
                         )}
-                        <Button variant="outline" size="sm" className="text-destructive" onClick={() => deleteInquiry(inq.id)} title="Delete">
-                          <Trash2 className="h-3.5 w-3.5" />
+                        <Button variant="outline" size="sm" className="text-destructive text-xs" onClick={() => deleteInquiry(inq.id)}>
+                          <Trash2 className="h-3 w-3 mr-1" /> Delete
                         </Button>
                       </div>
                     </div>

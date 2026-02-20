@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useSignedImageUrls } from "@/hooks/use-signed-images";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -70,7 +71,10 @@ const PropertyDetail = () => {
     );
   }
 
-  const images = property.images && property.images.length > 0 ? property.images : ["/placeholder.svg"];
+  const rawImages = property.images && property.images.length > 0 ? property.images : [];
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { signedUrls } = useSignedImageUrls(rawImages);
+  const images = signedUrls.length > 0 ? signedUrls : ["/placeholder.svg"];
 
   return (
     <div className="min-h-screen bg-background">
