@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Home, ArrowLeft } from "lucide-react";
+import { getFriendlyAuthError } from "@/lib/errorMessages";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -21,7 +22,7 @@ const Login = () => {
     setLoading(false);
 
     if (error) {
-      toast({ title: "Login failed", description: error.message, variant: "destructive" });
+      toast({ title: "Login failed", description: getFriendlyAuthError(error.message), variant: "destructive" });
     } else {
       toast({ title: "Welcome back!" });
       navigate("/");

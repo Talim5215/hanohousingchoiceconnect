@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Home, ArrowLeft } from "lucide-react";
+import { getFriendlyAuthError, getFriendlyDbError } from "@/lib/errorMessages";
 import { z } from "zod";
 
 type AccountType = "tenant" | "landlord";
@@ -55,7 +56,7 @@ const Register = () => {
 
     if (error) {
       setLoading(false);
-      toast({ title: "Registration failed", description: error.message, variant: "destructive" });
+      toast({ title: "Registration failed", description: getFriendlyAuthError(error.message), variant: "destructive" });
       return;
     }
 
@@ -70,7 +71,7 @@ const Register = () => {
 
       if (profileError) {
         setLoading(false);
-        toast({ title: "Profile creation failed", description: profileError.message, variant: "destructive" });
+        toast({ title: "Profile creation failed", description: getFriendlyDbError(profileError.message), variant: "destructive" });
         return;
       }
     }
