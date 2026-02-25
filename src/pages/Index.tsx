@@ -4,6 +4,9 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Search, Shield, Home, Users, ArrowRight, BadgeCheck, Building2, Phone, Mail, MapPin } from "lucide-react";
 import heroBg from "@/assets/hero-bg.jpg";
+import nolaHome1 from "@/assets/nola-home-1.jpg";
+import nolaHome2 from "@/assets/nola-home-2.jpg";
+import nolaHome3 from "@/assets/nola-home-3.jpg";
 
 const Index = () => {
   return (
@@ -63,6 +66,35 @@ const Index = () => {
               <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Featured New Orleans Housing */}
+      <section className="bg-muted/50">
+        <div className="container mx-auto px-4 py-20">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl font-serif font-bold text-foreground mb-3">New Orleans Housing</h2>
+            <p className="text-muted-foreground max-w-lg mx-auto">Discover the charm of New Orleans neighborhoods — from the Garden District to the French Quarter</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { img: nolaHome1, title: "Garden District", desc: "Classic Southern homes with columned porches and oak-lined streets" },
+              { img: nolaHome2, title: "French Quarter", desc: "Iconic apartments with wrought-iron balconies and historic character" },
+              { img: nolaHome3, title: "Uptown & Beyond", desc: "Well-maintained family homes in quiet, welcoming neighborhoods" },
+            ].map(({ img, title, desc }) => (
+              <Link to="/listings" key={title} className="group">
+                <div className="bg-card rounded-lg border overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                  <div className="aspect-[4/3] overflow-hidden">
+                    <img src={img} alt={`${title} housing in New Orleans`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                  </div>
+                  <div className="p-5">
+                    <h3 className="font-serif font-semibold text-foreground text-lg mb-1">{title}</h3>
+                    <p className="text-sm text-muted-foreground">{desc}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
