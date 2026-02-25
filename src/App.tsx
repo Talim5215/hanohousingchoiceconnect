@@ -11,6 +11,7 @@ import PropertyDetail from "./pages/PropertyDetail";
 import Dashboard from "./pages/Dashboard";
 import Contact from "./pages/Contact";
 import Communities from "./pages/Communities";
+import HowItWorks from "./pages/HowItWorks";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/communities" element={<Communities />} />
+          <Route path="/how-it-works" element={<HowItWorks />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
