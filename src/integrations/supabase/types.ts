@@ -159,33 +159,20 @@ export type Database = {
       }
     }
     Views: {
-      landlord_profiles_public: {
-        Row: {
-          account_type: Database["public"]["Enums"]["account_type"] | null
-          created_at: string | null
-          full_name: string | null
-          id: string | null
-          user_id: string | null
-        }
-        Insert: {
-          account_type?: Database["public"]["Enums"]["account_type"] | null
-          created_at?: string | null
-          full_name?: string | null
-          id?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          account_type?: Database["public"]["Enums"]["account_type"] | null
-          created_at?: string | null
-          full_name?: string | null
-          id?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       check_inquiry_rate_limit: { Args: never; Returns: boolean }
+      get_landlord_profiles: {
+        Args: never
+        Returns: {
+          account_type: string
+          created_at: string
+          full_name: string
+          id: string
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       account_type: "tenant" | "landlord"
