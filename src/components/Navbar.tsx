@@ -55,6 +55,9 @@ const Navbar = () => {
           <Link to="/listings" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             Browse Listings
           </Link>
+          <Link to="/communities" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            Communities
+          </Link>
           <Link to="/contact" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             Contact HANO
           </Link>
@@ -91,6 +94,7 @@ const Navbar = () => {
       {menuOpen && (
         <div className="md:hidden bg-card border-b p-4 space-y-3">
           <Link to="/listings" className="block text-sm font-medium text-muted-foreground" onClick={() => setMenuOpen(false)}>Browse Listings</Link>
+          <Link to="/communities" className="block text-sm font-medium text-muted-foreground" onClick={() => setMenuOpen(false)}>Communities</Link>
           <Link to="/contact" className="block text-sm font-medium text-muted-foreground" onClick={() => setMenuOpen(false)}>Contact HANO</Link>
           {user ? (
             <>
