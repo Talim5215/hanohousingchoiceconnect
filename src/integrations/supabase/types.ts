@@ -185,7 +185,7 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      check_inquiry_rate_limit: { Args: never; Returns: boolean }
     }
     Enums: {
       account_type: "tenant" | "landlord"
