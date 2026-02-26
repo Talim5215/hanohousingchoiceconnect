@@ -62,10 +62,10 @@ const HowItWorks = () => {
       {/* Hero */}
       <section className="bg-primary/5 border-b py-16">
         <div className="container mx-auto px-4 text-center max-w-3xl">
-          <h1 className="text-4xl md:text-5xl font-bold font-serif text-foreground mb-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold font-serif text-foreground mb-4">
             How to Use Housing Choice Connect
           </h1>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-base sm:text-lg text-muted-foreground">
             Whether you're a tenant searching for housing or a landlord listing a property,
             this guide walks you through every step of the process.
           </p>
@@ -145,7 +145,7 @@ const HowItWorks = () => {
       {/* FAQ */}
       <section className="bg-muted/30 border-t py-16">
         <div className="container mx-auto px-4 max-w-3xl">
-          <h2 className="text-3xl font-bold font-serif text-foreground text-center mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold font-serif text-foreground text-center mb-8">
             Frequently Asked Questions
           </h2>
           <Accordion type="single" collapsible className="w-full">

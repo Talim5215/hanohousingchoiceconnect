@@ -8,7 +8,7 @@ const Contact = () => {
       <Navbar />
       <main className="flex-1 container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-serif font-bold text-foreground mb-2">Contact HANO</h1>
+          <h1 className="text-3xl sm:text-4xl font-serif font-bold text-foreground mb-2">Contact HANO</h1>
           <p className="text-muted-foreground mb-10">
             Housing Authority of New Orleans — reach out for assistance with the Housing Choice Voucher Program.
           </p>

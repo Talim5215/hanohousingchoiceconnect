@@ -72,7 +72,7 @@ const Listings = () => {
       <Navbar />
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-serif font-bold text-foreground mb-2">Available Properties</h1>
+          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground mb-2">Available Properties</h1>
           <p className="text-muted-foreground">Find your next home in New Orleans</p>
         </div>
 
@@ -103,7 +103,7 @@ const Listings = () => {
         </div>
 
         {/* Property type pills */}
-        <div className="flex gap-2 flex-wrap mb-4">
+        <div className="flex gap-2 flex-wrap mb-4 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
           {PROPERTY_TYPES.map((f) => (
             <button
               key={f}
