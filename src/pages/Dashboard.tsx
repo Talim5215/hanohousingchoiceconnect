@@ -215,23 +215,23 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
       <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
-            <h1 className="text-3xl font-serif font-bold text-foreground">Landlord Dashboard</h1>
-            <p className="text-muted-foreground">Manage your property listings and inquiries</p>
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground">Landlord Dashboard</h1>
+            <p className="text-sm text-muted-foreground">Manage your property listings and inquiries</p>
           </div>
           {activeTab === "listings" && (
-            <Button onClick={() => { resetForm(); setShowForm(!showForm); }}>
+            <Button onClick={() => { resetForm(); setShowForm(!showForm); }} className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" /> {showForm ? "Cancel" : "Add Property"}
             </Button>
           )}
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-muted rounded-lg p-1 w-fit">
+        <div className="flex gap-1 mb-6 bg-muted rounded-lg p-1 w-full sm:w-fit">
           <button
             onClick={() => setActiveTab("listings")}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            className={`flex-1 sm:flex-initial px-4 py-2 rounded-md text-sm font-medium transition-all ${
               activeTab === "listings" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -239,7 +239,7 @@ const Dashboard = () => {
           </button>
           <button
             onClick={() => setActiveTab("inquiries")}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+            className={`flex-1 sm:flex-initial px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${
               activeTab === "inquiries" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -415,7 +415,7 @@ const Dashboard = () => {
               <div className="space-y-3">
                 {inquiries.map((inq) => (
                   <div key={inq.id} className={`bg-card rounded-lg border p-5 ${!inq.is_read ? "border-primary/30" : ""}`}>
-                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-semibold text-foreground">{inq.tenant_name}</span>
@@ -426,17 +426,17 @@ const Dashboard = () => {
                         <p className="text-xs text-muted-foreground mb-1">
                           Re: <span className="font-medium">{inq.properties?.title || "Unknown property"}</span>
                         </p>
-                        <p className="text-sm text-muted-foreground leading-relaxed">{inq.message}</p>
-                        <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-                          <a href={`mailto:${inq.tenant_email}`} className="flex items-center gap-1 hover:text-foreground transition-colors">
-                            <Mail className="h-3 w-3" /> {inq.tenant_email}
+                        <p className="text-sm text-muted-foreground leading-relaxed break-words">{inq.message}</p>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-3 text-xs text-muted-foreground">
+                          <a href={`mailto:${inq.tenant_email}`} className="flex items-center gap-1 hover:text-foreground transition-colors truncate">
+                            <Mail className="h-3 w-3 shrink-0" /> {inq.tenant_email}
                           </a>
                           <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" /> {new Date(inq.created_at).toLocaleDateString()}
+                            <Clock className="h-3 w-3 shrink-0" /> {new Date(inq.created_at).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
-                      <div className="flex flex-col gap-2 shrink-0">
+                      <div className="flex sm:flex-col gap-2 shrink-0">
                         {!inq.is_read && (
                           <Button variant="outline" size="sm" onClick={() => markRead(inq.id)} className="text-xs">
                             <Eye className="h-3 w-3 mr-1" /> Mark Read

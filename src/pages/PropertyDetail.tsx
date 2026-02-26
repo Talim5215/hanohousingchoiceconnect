@@ -108,7 +108,7 @@ const PropertyDetail = () => {
           {/* Details sidebar */}
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-serif font-bold text-foreground mb-2">{property.title}</h1>
+              <h1 className="text-2xl sm:text-3xl font-serif font-bold text-foreground mb-2">{property.title}</h1>
               <p className="flex items-center gap-1.5 text-muted-foreground">
                 <MapPin className="h-4 w-4" /> {property.address}, {property.city}, {property.state} {property.zip_code}
               </p>

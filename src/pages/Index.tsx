@@ -24,20 +24,20 @@ const Index = () => {
             <div className="inline-flex items-center gap-2 bg-secondary/20 backdrop-blur-sm text-primary-foreground text-sm font-medium px-4 py-1.5 rounded-full mb-6 border border-primary-foreground/20">
               <BadgeCheck className="h-4 w-4" /> Housing Choice Voucher Program
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-primary-foreground mb-6 leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-primary-foreground mb-4 sm:mb-6 leading-tight">
               Find Your Next Home in New Orleans
             </h1>
-            <p className="text-lg text-primary-foreground/85 mb-8 leading-relaxed max-w-xl">
+            <p className="text-base sm:text-lg text-primary-foreground/85 mb-6 sm:mb-8 leading-relaxed max-w-xl">
               Connecting tenants with quality, affordable housing and landlords with reliable residents through HANO's Housing Choice Connect platform.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
-              <Link to="/listings">
-                <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold px-8">
+              <Link to="/listings" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold px-8">
                   <Search className="h-4 w-4 mr-2" /> Browse Listings
                 </Button>
               </Link>
-              <Link to="/register">
-                <Button size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 font-semibold px-8">
+              <Link to="/register" className="w-full sm:w-auto">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 font-semibold px-8">
                   Create Account <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </Link>
@@ -49,7 +49,7 @@ const Index = () => {
       {/* Features */}
       <section className="container mx-auto px-4 py-20">
         <div className="text-center mb-14">
-          <h2 className="text-3xl font-serif font-bold text-foreground mb-3">How It Works</h2>
+          <h2 className="text-2xl sm:text-3xl font-serif font-bold text-foreground mb-3">How It Works</h2>
           <p className="text-muted-foreground max-w-lg mx-auto">A simple platform connecting tenants and landlords through the Housing Choice Voucher Program</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -73,7 +73,7 @@ const Index = () => {
       <section className="bg-muted/50">
         <div className="container mx-auto px-4 py-20">
           <div className="text-center mb-14">
-            <h2 className="text-3xl font-serif font-bold text-foreground mb-3">New Orleans Housing</h2>
+            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-foreground mb-3">New Orleans Housing</h2>
             <p className="text-muted-foreground max-w-lg mx-auto">Discover the charm of New Orleans neighborhoods — from the Garden District to the French Quarter</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -109,7 +109,7 @@ const Index = () => {
               { num: "100%", label: "Voucher Support" },
             ].map(({ num, label }) => (
               <div key={label}>
-                <div className="text-3xl md:text-4xl font-bold font-serif mb-1">{num}</div>
+                <div className="text-2xl sm:text-3xl md:text-4xl font-bold font-serif mb-1">{num}</div>
                 <div className="text-sm opacity-80">{label}</div>
               </div>
             ))}
@@ -122,7 +122,7 @@ const Index = () => {
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div>
-              <h2 className="text-3xl font-serif font-bold text-foreground mb-4">Need Assistance?</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-foreground mb-4">Need Assistance?</h2>
               <p className="text-muted-foreground mb-6 leading-relaxed">
                 The Housing Authority of New Orleans (HANO) is here to help with housing applications, voucher programs, and landlord inquiries.
               </p>
@@ -164,7 +164,7 @@ const Index = () => {
       {/* CTA */}
       <section className="bg-muted">
         <div className="container mx-auto px-4 py-16 text-center">
-          <h2 className="text-3xl font-serif font-bold text-foreground mb-3">Ready to Get Started?</h2>
+          <h2 className="text-2xl sm:text-3xl font-serif font-bold text-foreground mb-3">Ready to Get Started?</h2>
           <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
             Whether you're looking for a home or listing a property, create your account today.
           </p>

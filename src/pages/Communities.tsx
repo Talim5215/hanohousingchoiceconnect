@@ -131,8 +131,8 @@ const Communities = () => {
         {/* Header */}
         <section className="bg-primary text-primary-foreground py-16">
           <div className="container mx-auto px-4">
-            <h1 className="text-4xl font-serif font-bold mb-3">HANO Communities</h1>
-            <p className="text-primary-foreground/85 max-w-2xl text-lg leading-relaxed">
+            <h1 className="text-3xl sm:text-4xl font-serif font-bold mb-3">HANO Communities</h1>
+            <p className="text-primary-foreground/85 max-w-2xl text-base sm:text-lg leading-relaxed">
               The Housing Authority of New Orleans provides housing opportunities in safe, sustainable, pedestrian-oriented communities across the city. Explore our mixed-income neighborhoods below.
             </p>
           </div>

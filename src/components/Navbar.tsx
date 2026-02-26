@@ -40,15 +40,15 @@ const Navbar = () => {
   return (
     <nav className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
-            <Home className="h-4.5 w-4.5 text-primary-foreground" />
-          </div>
-          <div className="leading-tight">
-            <span className="font-serif font-bold text-foreground text-lg">Housing Choice</span>
-            <span className="block text-xs text-muted-foreground -mt-0.5">Connect</span>
-          </div>
-        </Link>
+          <Link to="/" className="flex items-center gap-2">
+            <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg bg-primary flex items-center justify-center">
+              <Home className="h-4 w-4 sm:h-4.5 sm:w-4.5 text-primary-foreground" />
+            </div>
+            <div className="leading-tight">
+              <span className="font-serif font-bold text-foreground text-base sm:text-lg">Housing Choice</span>
+              <span className="block text-xs text-muted-foreground -mt-0.5">Connect</span>
+            </div>
+          </Link>
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-6">
