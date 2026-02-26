@@ -97,3 +97,15 @@
     font-family: 'Playfair Display', serif;
   }
 }
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@media (max-width: 767px) {
+  body {
+    padding-bottom: 3.5rem;
+  }
+}
