@@ -1,12 +1,14 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PropertyCard from "@/components/PropertyCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { Search, SlidersHorizontal, X, Map, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+const PropertyMap = lazy(() => import("@/components/PropertyMap"));
 
 const PROPERTY_TYPES = ["all", "voucher", "apartment", "house", "townhouse", "duplex"] as const;
 const BEDROOM_OPTIONS = [0, 1, 2, 3, 4] as const;
@@ -21,6 +23,7 @@ const Listings = () => {
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "map">("list");
 
   useEffect(() => {
     supabase
@@ -195,11 +198,29 @@ const Listings = () => {
           </div>
         )}
 
-        {/* Results count */}
+        {/* Results count + view toggle */}
         {!loading && (
-          <p className="text-sm text-muted-foreground mb-4">
-            {filtered.length} {filtered.length === 1 ? "property" : "properties"} found
-          </p>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-muted-foreground">
+              {filtered.length} {filtered.length === 1 ? "property" : "properties"} found
+            </p>
+            <div className="flex gap-1 bg-muted rounded-lg p-0.5">
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-1.5 rounded-md transition-all ${viewMode === "list" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}
+                aria-label="List view"
+              >
+                <List className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode("map")}
+                className={`p-1.5 rounded-md transition-all ${viewMode === "map" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}
+                aria-label="Map view"
+              >
+                <Map className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         )}
 
         {loading ? (
@@ -223,6 +244,13 @@ const Listings = () => {
               <Button variant="outline" size="sm" onClick={clearFilters}>Clear All Filters</Button>
             )}
           </div>
+        ) : viewMode === "map" ? (
+          <Suspense fallback={<div className="h-[500px] bg-muted rounded-lg animate-pulse" />}>
+            <PropertyMap
+              properties={filtered}
+              className="h-[500px] sm:h-[600px]"
+            />
+          </Suspense>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((p) => (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getOwnerSignedUrl } from "@/hooks/use-signed-images";
@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Edit, Image, MessageSquare, Mail, Eye, EyeOff, Clock } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
+
+const LocationPicker = lazy(() => import("@/components/LocationPicker"));
 
 type Tab = "listings" | "inquiries";
 
@@ -72,6 +74,8 @@ const Dashboard = () => {
   const [amenitiesStr, setAmenitiesStr] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -109,6 +113,7 @@ const Dashboard = () => {
     setTitle(""); setDescription(""); setAddress(""); setCity("New Orleans"); setState("LA");
     setZipCode(""); setPrice(""); setBedrooms("1"); setBathrooms("1"); setSquareFeet("");
     setPropertyType("apartment"); setAcceptsVouchers(true); setAmenitiesStr(""); setImageFiles([]); setExistingImages([]);
+    setLatitude(null); setLongitude(null);
     setEditId(null);
   };
 
@@ -120,6 +125,7 @@ const Dashboard = () => {
     setSquareFeet(p.square_feet ? String(p.square_feet) : ""); setPropertyType(p.property_type);
     setAcceptsVouchers(p.accepts_vouchers); setAmenitiesStr((p.amenities || []).join(", "));
     setExistingImages(p.images || []); setImageFiles([]);
+    setLatitude(p.latitude ?? null); setLongitude(p.longitude ?? null);
     setShowForm(true);
     setActiveTab("listings");
   };
@@ -166,6 +172,8 @@ const Dashboard = () => {
       accepts_vouchers: acceptsVouchers,
       amenities: amenitiesStr ? amenitiesStr.split(",").map(s => s.trim()).filter(Boolean) : null,
       images: allImages.length > 0 ? allImages : null,
+      latitude,
+      longitude,
     };
 
     let error;
@@ -329,6 +337,15 @@ const Dashboard = () => {
                     <input type="checkbox" id="vouchers" checked={acceptsVouchers} onChange={e => setAcceptsVouchers(e.target.checked)} className="rounded" />
                     <Label htmlFor="vouchers">Accepts Housing Choice Vouchers</Label>
                   </div>
+
+                  <Suspense fallback={<div className="h-[300px] bg-muted rounded-lg animate-pulse" />}>
+                    <LocationPicker
+                      latitude={latitude}
+                      longitude={longitude}
+                      onLocationChange={(lat, lng) => { setLatitude(lat); setLongitude(lng); }}
+                      address={`${address}, ${city}, ${state} ${zipCode}`}
+                    />
+                  </Suspense>
 
                   <div>
                     <Label>Property Photos</Label>
