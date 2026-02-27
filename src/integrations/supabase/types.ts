@@ -105,6 +105,8 @@ export type Database = {
           images: string[] | null
           is_available: boolean
           landlord_id: string
+          latitude: number | null
+          longitude: number | null
           price: number
           property_type: string
           square_feet: number | null
@@ -126,6 +128,8 @@ export type Database = {
           images?: string[] | null
           is_available?: boolean
           landlord_id: string
+          latitude?: number | null
+          longitude?: number | null
           price: number
           property_type?: string
           square_feet?: number | null
@@ -147,6 +151,8 @@ export type Database = {
           images?: string[] | null
           is_available?: boolean
           landlord_id?: string
+          latitude?: number | null
+          longitude?: number | null
           price?: number
           property_type?: string
           square_feet?: number | null
