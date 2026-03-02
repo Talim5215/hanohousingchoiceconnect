@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSignedImageUrls } from "@/hooks/use-signed-images";
@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Bed, Bath, Ruler, MapPin, BadgeCheck, Calendar, Home, Phone, Mail, ExternalLink, Send } from "lucide-react";
+
+const PropertyMap = lazy(() => import("@/components/PropertyMap"));
 import { z } from "zod";
 
 const inquirySchema = z.object({
@@ -192,6 +194,20 @@ const PropertyDetail = () => {
                     <span key={i} className="bg-muted text-foreground text-sm px-3 py-1.5 rounded-full">{a}</span>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Location Map */}
+            {property.latitude != null && property.longitude != null && (
+              <div className="mt-8">
+                <h2 className="text-xl font-serif font-bold text-foreground mb-3">Location</h2>
+                <Suspense fallback={<div className="h-[300px] bg-muted rounded-lg animate-pulse" />}>
+                  <PropertyMap
+                    properties={[property]}
+                    className="h-[300px] sm:h-[350px]"
+                    linkToDetail={false}
+                  />
+                </Suspense>
               </div>
             )}
           </div>
