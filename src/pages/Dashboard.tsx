@@ -145,10 +145,31 @@ const Dashboard = () => {
     return storagePaths;
   };
 
+  const geocodeAddress = async (addr: string): Promise<{ lat: number; lng: number } | null> => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&limit=1`);
+      const data = await res.json();
+      if (data?.[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    } catch { /* ignore */ }
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     setSaving(true);
+
+    // Auto-geocode if landlord didn't manually set a pin
+    let finalLat = latitude;
+    let finalLng = longitude;
+    if (finalLat == null || finalLng == null) {
+      const fullAddress = `${address.trim()}, ${city.trim()}, ${state.trim()} ${zipCode.trim()}`;
+      const geo = await geocodeAddress(fullAddress);
+      if (geo) {
+        finalLat = geo.lat;
+        finalLng = geo.lng;
+      }
+    }
 
     let allImages = [...existingImages];
     if (imageFiles.length > 0) {
@@ -172,8 +193,8 @@ const Dashboard = () => {
       accepts_vouchers: acceptsVouchers,
       amenities: amenitiesStr ? amenitiesStr.split(",").map(s => s.trim()).filter(Boolean) : null,
       images: allImages.length > 0 ? allImages : null,
-      latitude,
-      longitude,
+      latitude: finalLat,
+      longitude: finalLng,
     };
 
     let error;
