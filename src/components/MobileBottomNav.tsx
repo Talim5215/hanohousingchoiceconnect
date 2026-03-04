@@ -16,7 +16,7 @@ const MobileBottomNav = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const accountTo = loggedIn ? "/dashboard" : "/login";
+  const accountTo = loggedIn ? "/account" : "/login";
 
   const navItems = [
     { to: "/", icon: Home, label: "Home" },

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Home, Menu, X, LogOut, User } from "lucide-react";
+import { Home, Menu, X, LogOut, User, Settings } from "lucide-react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 
 const Navbar = () => {
@@ -71,10 +71,15 @@ const Navbar = () => {
                   <Button variant="outline" size="sm">Dashboard</Button>
                 </Link>
               )}
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Link to="/account" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                 <User className="h-4 w-4" />
                 <span>{profile?.full_name || "User"}</span>
-              </div>
+              </Link>
+              <Link to="/account">
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </Link>
               <Button variant="ghost" size="sm" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -107,6 +112,9 @@ const Navbar = () => {
                   <Button variant="outline" size="sm" className="w-full">Dashboard</Button>
                 </Link>
               )}
+              <Link to="/account" className="block" onClick={() => setMenuOpen(false)}>
+                <Button variant="outline" size="sm" className="w-full">Account Settings</Button>
+              </Link>
               <Button variant="ghost" size="sm" className="w-full" onClick={handleLogout}>Sign Out</Button>
             </>
           ) : (
