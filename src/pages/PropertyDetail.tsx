@@ -49,6 +49,11 @@ const PropertyDetail = () => {
     }
   }, [id]);
 
+  // Always call hooks unconditionally
+  const rawImages = property?.images?.length > 0 ? property.images : [];
+  const { signedUrls } = useSignedImageUrls(rawImages);
+  const images = signedUrls.length > 0 ? signedUrls : ["/placeholder.svg"];
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -72,11 +77,6 @@ const PropertyDetail = () => {
       </div>
     );
   }
-
-  const rawImages = property.images && property.images.length > 0 ? property.images : [];
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const { signedUrls } = useSignedImageUrls(rawImages);
-  const images = signedUrls.length > 0 ? signedUrls : ["/placeholder.svg"];
 
   return (
     <div className="min-h-screen bg-background">
