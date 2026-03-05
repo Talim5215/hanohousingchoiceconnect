@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Home, Menu, X, LogOut, User, Settings } from "lucide-react";
+import { Home, Menu, X, LogOut, User, Settings, Shield } from "lucide-react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 
 const Navbar = () => {
   const [user, setUser] = useState<SupaUser | null>(null);
   const [profile, setProfile] = useState<{ account_type: string; full_name: string } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -26,8 +27,12 @@ const Navbar = () => {
       supabase.from("profiles").select("account_type, full_name").eq("user_id", user.id).maybeSingle().then(({ data }) => {
         setProfile(data);
       });
+      supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }).then(({ data }) => {
+        setIsAdmin(!!data);
+      });
     } else {
       setProfile(null);
+      setIsAdmin(false);
     }
   }, [user]);
 
@@ -66,6 +71,13 @@ const Navbar = () => {
           </Link>
           {user ? (
             <div className="flex items-center gap-3">
+              {isAdmin && (
+                <Link to="/admin">
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <Shield className="h-3.5 w-3.5" /> Admin
+                  </Button>
+                </Link>
+              )}
               {profile?.account_type === "landlord" && (
                 <Link to="/dashboard">
                   <Button variant="outline" size="sm">Dashboard</Button>
