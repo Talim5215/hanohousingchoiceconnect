@@ -13,6 +13,7 @@ import Contact from "./pages/Contact";
 import Communities from "./pages/Communities";
 import HowItWorks from "./pages/HowItWorks";
 import AccountSettings from "./pages/AccountSettings";
+import AdminPortal from "./pages/AdminPortal";
 import NotFound from "./pages/NotFound";
 import MobileBottomNav from "./components/MobileBottomNav";
 
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/communities" element={<Communities />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
           <Route path="/account" element={<AccountSettings />} />
+          <Route path="/admin" element={<AdminPortal />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <MobileBottomNav />
