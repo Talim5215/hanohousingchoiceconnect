@@ -71,6 +71,13 @@ const Navbar = () => {
           </Link>
           {user ? (
             <div className="flex items-center gap-3">
+              {isAdmin && (
+                <Link to="/admin">
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <Shield className="h-3.5 w-3.5" /> Admin
+                  </Button>
+                </Link>
+              )}
               {profile?.account_type === "landlord" && (
                 <Link to="/dashboard">
                   <Button variant="outline" size="sm">Dashboard</Button>
