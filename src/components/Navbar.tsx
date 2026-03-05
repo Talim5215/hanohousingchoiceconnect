@@ -27,8 +27,12 @@ const Navbar = () => {
       supabase.from("profiles").select("account_type, full_name").eq("user_id", user.id).maybeSingle().then(({ data }) => {
         setProfile(data);
       });
+      supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }).then(({ data }) => {
+        setIsAdmin(!!data);
+      });
     } else {
       setProfile(null);
+      setIsAdmin(false);
     }
   }, [user]);
 
