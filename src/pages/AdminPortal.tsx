@@ -15,11 +15,29 @@ import {
 } from "@/components/ui/dialog";
 import {
   Shield, Users, Building2, MessageSquare, Loader2, Trash2, Eye, EyeOff, Search,
-  AlertTriangle, UserX, CheckCircle, XCircle,
+  AlertTriangle, UserX, CheckCircle, XCircle, ClipboardList, RefreshCw,
 } from "lucide-react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 
-type TabId = "users" | "properties" | "inquiries";
+type TabId = "users" | "properties" | "inquiries" | "logs";
+
+interface AuditLog {
+  id: string;
+  admin_user_id: string;
+  action: string;
+  target_type: string;
+  target_id: string | null;
+  details: Record<string, any>;
+  created_at: string;
+}
+
+const ACTION_LABELS: Record<string, { label: string; color: string }> = {
+  delete_user: { label: "Deleted User", color: "text-destructive" },
+  delete_property: { label: "Deleted Property", color: "text-destructive" },
+  delete_inquiry: { label: "Deleted Inquiry", color: "text-destructive" },
+  toggle_property: { label: "Toggled Property", color: "text-foreground" },
+  toggle_inquiry_read: { label: "Toggled Inquiry", color: "text-foreground" },
+};
 
 const AdminPortal = () => {
   const [user, setUser] = useState<SupaUser | null>(null);
@@ -31,7 +49,9 @@ const AdminPortal = () => {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
   const [inquiries, setInquiries] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [logsLoading, setLogsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Delete user dialog
@@ -84,6 +104,34 @@ const AdminPortal = () => {
     setLoading(false);
   };
 
+  const fetchAuditLogs = async () => {
+    setLogsLoading(true);
+    const { data } = await supabase
+      .from("admin_audit_logs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    setAuditLogs((data as AuditLog[]) || []);
+    setLogsLoading(false);
+  };
+
+  useEffect(() => {
+    if (isAdmin && activeTab === "logs") {
+      fetchAuditLogs();
+    }
+  }, [isAdmin, activeTab]);
+
+  const logAction = async (action: string, targetType: string, targetId: string | null, details: Record<string, any> = {}) => {
+    if (!user) return;
+    await supabase.from("admin_audit_logs").insert({
+      admin_user_id: user.id,
+      action,
+      target_type: targetType,
+      target_id: targetId,
+      details,
+    });
+  };
+
   // ── Admin Actions ──
 
   const handleDeleteUser = async () => {
@@ -101,6 +149,11 @@ const AdminPortal = () => {
     if (error || data?.error) {
       toast({ title: "Error", description: data?.error || error?.message || "Failed to delete user", variant: "destructive" });
     } else {
+      await logAction("delete_user", "user", profile.user_id, {
+        user_name: profile.full_name,
+        account_type: profile.account_type,
+        entity_id: profile.entity_id,
+      });
       setProfiles(prev => prev.filter(p => p.user_id !== profile.user_id));
       setProperties(prev => prev.filter(p => p.landlord_id !== profile.user_id));
       setInquiries(prev => prev.filter(i => i.landlord_id !== profile.user_id));
@@ -119,6 +172,11 @@ const AdminPortal = () => {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
+      await logAction("delete_property", "property", prop.id, {
+        title: prop.title,
+        address: prop.address,
+        city: prop.city,
+      });
       setProperties(prev => prev.filter(p => p.id !== prop.id));
       toast({ title: "Property deleted" });
     }
@@ -130,6 +188,12 @@ const AdminPortal = () => {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
+      const prop = properties.find(p => p.id === id);
+      await logAction("toggle_property", "property", id, {
+        title: prop?.title,
+        from: currentValue ? "active" : "inactive",
+        to: !currentValue ? "active" : "inactive",
+      });
       setProperties(prev => prev.map(p => p.id === id ? { ...p, is_available: !currentValue } : p));
       toast({ title: `Property ${!currentValue ? "enabled" : "disabled"}` });
     }
@@ -142,18 +206,34 @@ const AdminPortal = () => {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
+      await logAction("toggle_inquiry_read", "inquiry", id, {
+        from: currentValue ? "read" : "unread",
+        to: !currentValue ? "read" : "unread",
+      });
       setInquiries(prev => prev.map(i => i.id === id ? { ...i, is_read: !currentValue } : i));
     }
   };
 
   const handleDeleteInquiry = async (id: string) => {
+    const inquiry = inquiries.find(i => i.id === id);
     const { error } = await supabase.from("inquiries").delete().eq("id", id);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
+      await logAction("delete_inquiry", "inquiry", id, {
+        tenant_name: inquiry?.tenant_name,
+        tenant_email: inquiry?.tenant_email,
+      });
       setInquiries(prev => prev.filter(i => i.id !== id));
       toast({ title: "Inquiry deleted" });
     }
+  };
+
+  // ── Helpers ──
+
+  const getAdminName = (adminId: string) => {
+    const profile = profiles.find(p => p.user_id === adminId);
+    return profile?.full_name || "Unknown Admin";
   };
 
   // ── Guards ──
@@ -190,6 +270,7 @@ const AdminPortal = () => {
     { id: "users", label: "Users", icon: <Users className="h-4 w-4" />, count: profiles.length },
     { id: "properties", label: "Properties", icon: <Building2 className="h-4 w-4" />, count: properties.length },
     { id: "inquiries", label: "Inquiries", icon: <MessageSquare className="h-4 w-4" />, count: inquiries.length },
+    { id: "logs", label: "Activity", icon: <ClipboardList className="h-4 w-4" />, count: auditLogs.length },
   ];
 
   const filteredProfiles = profiles.filter(p =>
@@ -203,6 +284,12 @@ const AdminPortal = () => {
   const filteredInquiries = inquiries.filter(i =>
     i.tenant_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     i.tenant_email?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const filteredLogs = auditLogs.filter(l =>
+    l.action?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (l.details as any)?.user_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (l.details as any)?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (l.details as any)?.tenant_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -219,7 +306,7 @@ const AdminPortal = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
           {tabs.map(t => (
             <button
               key={t.id}
@@ -239,14 +326,21 @@ const AdminPortal = () => {
         </div>
 
         {/* Search */}
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={`Search ${activeTab}...`}
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+        <div className="relative mb-4 flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={`Search ${activeTab}...`}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          {activeTab === "logs" && (
+            <Button variant="outline" size="icon" onClick={fetchAuditLogs} disabled={logsLoading} title="Refresh logs">
+              <RefreshCw className={`h-4 w-4 ${logsLoading ? "animate-spin" : ""}`} />
+            </Button>
+          )}
         </div>
 
         {loading ? (
@@ -408,6 +502,61 @@ const AdminPortal = () => {
                   ))}
                 </TableBody>
               </Table>
+            )}
+
+            {/* Activity Logs Tab */}
+            {activeTab === "logs" && (
+              logsLoading ? (
+                <div className="py-12 text-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mx-auto" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date &amp; Time</TableHead>
+                      <TableHead>Admin</TableHead>
+                      <TableHead>Action</TableHead>
+                      <TableHead>Target</TableHead>
+                      <TableHead>Details</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredLogs.length === 0 ? (
+                      <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No activity logs yet</TableCell></TableRow>
+                    ) : filteredLogs.map(log => {
+                      const actionInfo = ACTION_LABELS[log.action] || { label: log.action, color: "text-foreground" };
+                      const details = log.details || {};
+                      const detailSummary = details.user_name || details.title || details.tenant_name || "—";
+                      const detailExtra = details.from && details.to ? `${details.from} → ${details.to}` : null;
+                      return (
+                        <TableRow key={log.id}>
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                            {new Date(log.created_at).toLocaleString()}
+                          </TableCell>
+                          <TableCell className="font-medium text-sm">{getAdminName(log.admin_user_id)}</TableCell>
+                          <TableCell>
+                            <span className={`text-sm font-medium ${actionInfo.color}`}>
+                              {actionInfo.label}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="capitalize text-xs">
+                              {log.target_type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground max-w-[250px]">
+                            <span className="truncate block">{detailSummary}</span>
+                            {detailExtra && (
+                              <span className="text-xs text-muted-foreground/70">{detailExtra}</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )
             )}
           </div>
         )}
