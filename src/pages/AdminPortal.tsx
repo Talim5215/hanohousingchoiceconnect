@@ -11,7 +11,11 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Shield, Users, Building2, MessageSquare, Loader2, Trash2, Eye, EyeOff, Search,
+  AlertTriangle, UserX, CheckCircle, XCircle,
 } from "lucide-react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 
@@ -24,12 +28,23 @@ const AdminPortal = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Data states
   const [profiles, setProfiles] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
   const [inquiries, setInquiries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Delete user dialog
+  const [deleteUserDialog, setDeleteUserDialog] = useState<{ open: boolean; profile: any | null }>({ open: false, profile: null });
+  const [deleteUserConfirm, setDeleteUserConfirm] = useState("");
+  const [deletingUser, setDeletingUser] = useState(false);
+
+  // Delete property dialog
+  const [deletePropertyDialog, setDeletePropertyDialog] = useState<{ open: boolean; property: any | null }>({ open: false, property: null });
+  const [deletingProperty, setDeletingProperty] = useState(false);
+
+  // Mark inquiry read/unread
+  const [togglingInquiry, setTogglingInquiry] = useState<string | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
@@ -43,42 +58,71 @@ const AdminPortal = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Check admin role
   useEffect(() => {
     if (!user) return;
     supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }).then(({ data, error }) => {
-      if (error || !data) {
-        setIsAdmin(false);
-        return;
-      }
+      if (error || !data) { setIsAdmin(false); return; }
       setIsAdmin(true);
     });
   }, [user]);
 
-  // Fetch data when admin confirmed
   useEffect(() => {
     if (!isAdmin) return;
+    fetchAllData();
+  }, [isAdmin]);
+
+  const fetchAllData = async () => {
     setLoading(true);
-    Promise.all([
+    const [profilesRes, propertiesRes, inquiriesRes] = await Promise.all([
       supabase.from("profiles").select("*"),
       supabase.from("properties").select("*").order("created_at", { ascending: false }),
       supabase.from("inquiries").select("*").order("created_at", { ascending: false }),
-    ]).then(([profilesRes, propertiesRes, inquiriesRes]) => {
-      setProfiles(profilesRes.data || []);
-      setProperties(propertiesRes.data || []);
-      setInquiries(inquiriesRes.data || []);
-      setLoading(false);
-    });
-  }, [isAdmin]);
+    ]);
+    setProfiles(profilesRes.data || []);
+    setProperties(propertiesRes.data || []);
+    setInquiries(inquiriesRes.data || []);
+    setLoading(false);
+  };
 
-  const handleDeleteProperty = async (id: string) => {
-    const { error } = await supabase.from("properties").delete().eq("id", id);
+  // ── Admin Actions ──
+
+  const handleDeleteUser = async () => {
+    const profile = deleteUserDialog.profile;
+    if (!profile || deleteUserConfirm !== "DELETE") return;
+    if (profile.user_id === user?.id) {
+      toast({ title: "Error", description: "You cannot delete your own admin account.", variant: "destructive" });
+      return;
+    }
+    setDeletingUser(true);
+    const { data, error } = await supabase.functions.invoke("admin-delete-user", {
+      body: { user_id: profile.user_id },
+    });
+    setDeletingUser(false);
+    if (error || data?.error) {
+      toast({ title: "Error", description: data?.error || error?.message || "Failed to delete user", variant: "destructive" });
+    } else {
+      setProfiles(prev => prev.filter(p => p.user_id !== profile.user_id));
+      setProperties(prev => prev.filter(p => p.landlord_id !== profile.user_id));
+      setInquiries(prev => prev.filter(i => i.landlord_id !== profile.user_id));
+      toast({ title: "User deleted", description: `${profile.full_name}'s account and all associated data have been removed.` });
+    }
+    setDeleteUserDialog({ open: false, profile: null });
+    setDeleteUserConfirm("");
+  };
+
+  const handleDeleteProperty = async () => {
+    const prop = deletePropertyDialog.property;
+    if (!prop) return;
+    setDeletingProperty(true);
+    const { error } = await supabase.from("properties").delete().eq("id", prop.id);
+    setDeletingProperty(false);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      setProperties(prev => prev.filter(p => p.id !== id));
+      setProperties(prev => prev.filter(p => p.id !== prop.id));
       toast({ title: "Property deleted" });
     }
+    setDeletePropertyDialog({ open: false, property: null });
   };
 
   const handleTogglePropertyAvailability = async (id: string, currentValue: boolean) => {
@@ -91,6 +135,17 @@ const AdminPortal = () => {
     }
   };
 
+  const handleToggleInquiryRead = async (id: string, currentValue: boolean) => {
+    setTogglingInquiry(id);
+    const { error } = await supabase.from("inquiries").update({ is_read: !currentValue }).eq("id", id);
+    setTogglingInquiry(null);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setInquiries(prev => prev.map(i => i.id === id ? { ...i, is_read: !currentValue } : i));
+    }
+  };
+
   const handleDeleteInquiry = async (id: string) => {
     const { error } = await supabase.from("inquiries").delete().eq("id", id);
     if (error) {
@@ -100,6 +155,8 @@ const AdminPortal = () => {
       toast({ title: "Inquiry deleted" });
     }
   };
+
+  // ── Guards ──
 
   if (isAdmin === null) {
     return (
@@ -126,6 +183,8 @@ const AdminPortal = () => {
       </div>
     );
   }
+
+  // ── Filters ──
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode; count: number }[] = [
     { id: "users", label: "Users", icon: <Users className="h-4 w-4" />, count: profiles.length },
@@ -195,7 +254,7 @@ const AdminPortal = () => {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />
           </div>
         ) : (
-          <div className="bg-card rounded-lg border overflow-hidden">
+          <div className="bg-card rounded-lg border overflow-x-auto">
             {/* Users Tab */}
             {activeTab === "users" && (
               <Table>
@@ -206,11 +265,12 @@ const AdminPortal = () => {
                     <TableHead>Entity ID</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Joined</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredProfiles.length === 0 ? (
-                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No users found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No users found</TableCell></TableRow>
                   ) : filteredProfiles.map(p => (
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">{p.full_name}</TableCell>
@@ -222,6 +282,21 @@ const AdminPortal = () => {
                       <TableCell className="text-muted-foreground text-xs font-mono">{p.entity_id}</TableCell>
                       <TableCell className="text-muted-foreground">{p.phone || "—"}</TableCell>
                       <TableCell className="text-muted-foreground text-xs">{new Date(p.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-right">
+                        {p.user_id === user?.id ? (
+                          <span className="text-xs text-muted-foreground italic">You</span>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteUserDialog({ open: true, profile: p })}
+                            title="Delete user account"
+                          >
+                            <UserX className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -270,7 +345,7 @@ const AdminPortal = () => {
                           </Button>
                           <Button
                             variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => handleDeleteProperty(p.id)}
+                            onClick={() => setDeletePropertyDialog({ open: true, property: p })}
                             title="Delete property"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -291,7 +366,7 @@ const AdminPortal = () => {
                     <TableHead>Tenant</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Message</TableHead>
-                    <TableHead>Read</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -300,7 +375,7 @@ const AdminPortal = () => {
                   {filteredInquiries.length === 0 ? (
                     <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No inquiries found</TableCell></TableRow>
                   ) : filteredInquiries.map(i => (
-                    <TableRow key={i.id}>
+                    <TableRow key={i.id} className={!i.is_read ? "bg-primary/5" : ""}>
                       <TableCell className="font-medium">{i.tenant_name}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{i.tenant_email}</TableCell>
                       <TableCell className="text-muted-foreground text-sm max-w-[250px] truncate">{i.message}</TableCell>
@@ -311,13 +386,23 @@ const AdminPortal = () => {
                       </TableCell>
                       <TableCell className="text-muted-foreground text-xs">{new Date(i.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteInquiry(i.id)}
-                          title="Delete inquiry"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1 justify-end">
+                          <Button
+                            variant="ghost" size="icon" className="h-8 w-8"
+                            onClick={() => handleToggleInquiryRead(i.id, i.is_read)}
+                            disabled={togglingInquiry === i.id}
+                            title={i.is_read ? "Mark as unread" : "Mark as read"}
+                          >
+                            {i.is_read ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteInquiry(i.id)}
+                            title="Delete inquiry"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -328,6 +413,71 @@ const AdminPortal = () => {
         )}
       </main>
       <Footer />
+
+      {/* Delete User Confirmation Dialog */}
+      <Dialog open={deleteUserDialog.open} onOpenChange={open => {
+        if (!open) { setDeleteUserDialog({ open: false, profile: null }); setDeleteUserConfirm(""); }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" /> Delete User Account
+            </DialogTitle>
+            <DialogDescription>
+              This will permanently delete <span className="font-semibold text-foreground">{deleteUserDialog.profile?.full_name}</span>'s
+              account, including all their properties, inquiries, and profile data. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm font-medium text-foreground">
+              Type <span className="font-bold text-destructive">DELETE</span> to confirm:
+            </p>
+            <Input
+              value={deleteUserConfirm}
+              onChange={e => setDeleteUserConfirm(e.target.value)}
+              placeholder="Type DELETE"
+              className="max-w-xs"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setDeleteUserDialog({ open: false, profile: null }); setDeleteUserConfirm(""); }}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteUserConfirm !== "DELETE" || deletingUser}
+              onClick={handleDeleteUser}
+            >
+              {deletingUser ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Deleting...</> : "Delete Account"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Property Confirmation Dialog */}
+      <Dialog open={deletePropertyDialog.open} onOpenChange={open => {
+        if (!open) setDeletePropertyDialog({ open: false, property: null });
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" /> Delete Property
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <span className="font-semibold text-foreground">"{deletePropertyDialog.property?.title}"</span>?
+              This will also remove any inquiries associated with this property.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeletePropertyDialog({ open: false, property: null })}>
+              Cancel
+            </Button>
+            <Button variant="destructive" disabled={deletingProperty} onClick={handleDeleteProperty}>
+              {deletingProperty ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Deleting...</> : "Delete Property"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
