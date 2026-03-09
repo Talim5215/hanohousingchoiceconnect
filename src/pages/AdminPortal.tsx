@@ -132,6 +132,31 @@ const AdminPortal = () => {
     });
   };
 
+  const exportLogsAsCsv = () => {
+    const headers = ["Date & Time", "Admin", "Action", "Target Type", "Target ID", "Details"];
+    const rows = filteredLogs.map(log => {
+      const adminName = getAdminName(log.admin_user_id);
+      const details = log.details || {};
+      const detailStr = Object.entries(details).map(([k, v]) => `${k}: ${v}`).join("; ");
+      return [
+        new Date(log.created_at).toLocaleString(),
+        adminName,
+        log.action,
+        log.target_type,
+        log.target_id || "",
+        detailStr,
+      ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(",");
+    });
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `admin-audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // ── Admin Actions ──
 
   const handleDeleteUser = async () => {
