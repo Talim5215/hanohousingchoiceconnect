@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Shield, Users, Building2, MessageSquare, Loader2, Trash2, Eye, EyeOff, Search,
-  AlertTriangle, UserX, CheckCircle, XCircle, ClipboardList, RefreshCw,
+  AlertTriangle, UserX, CheckCircle, XCircle, ClipboardList, RefreshCw, Download,
 } from "lucide-react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 
@@ -130,6 +130,31 @@ const AdminPortal = () => {
       target_id: targetId,
       details,
     });
+  };
+
+  const exportLogsAsCsv = () => {
+    const headers = ["Date & Time", "Admin", "Action", "Target Type", "Target ID", "Details"];
+    const rows = filteredLogs.map(log => {
+      const adminName = getAdminName(log.admin_user_id);
+      const details = log.details || {};
+      const detailStr = Object.entries(details).map(([k, v]) => `${k}: ${v}`).join("; ");
+      return [
+        new Date(log.created_at).toLocaleString(),
+        adminName,
+        log.action,
+        log.target_type,
+        log.target_id || "",
+        detailStr,
+      ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(",");
+    });
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `admin-audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // ── Admin Actions ──
@@ -337,9 +362,14 @@ const AdminPortal = () => {
             />
           </div>
           {activeTab === "logs" && (
-            <Button variant="outline" size="icon" onClick={fetchAuditLogs} disabled={logsLoading} title="Refresh logs">
-              <RefreshCw className={`h-4 w-4 ${logsLoading ? "animate-spin" : ""}`} />
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={exportLogsAsCsv} disabled={filteredLogs.length === 0}>
+                <Download className="h-4 w-4 mr-1" /> Export CSV
+              </Button>
+              <Button variant="outline" size="icon" onClick={fetchAuditLogs} disabled={logsLoading} title="Refresh logs">
+                <RefreshCw className={`h-4 w-4 ${logsLoading ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
           )}
         </div>
 
