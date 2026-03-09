@@ -362,9 +362,14 @@ const AdminPortal = () => {
             />
           </div>
           {activeTab === "logs" && (
-            <Button variant="outline" size="icon" onClick={fetchAuditLogs} disabled={logsLoading} title="Refresh logs">
-              <RefreshCw className={`h-4 w-4 ${logsLoading ? "animate-spin" : ""}`} />
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={exportLogsAsCsv} disabled={filteredLogs.length === 0}>
+                <Download className="h-4 w-4 mr-1" /> Export CSV
+              </Button>
+              <Button variant="outline" size="icon" onClick={fetchAuditLogs} disabled={logsLoading} title="Refresh logs">
+                <RefreshCw className={`h-4 w-4 ${logsLoading ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
           )}
         </div>
 
