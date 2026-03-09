@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Shield, Users, Building2, MessageSquare, Loader2, Trash2, Eye, EyeOff, Search,
-  AlertTriangle, UserX, CheckCircle, XCircle, ClipboardList, RefreshCw,
+  AlertTriangle, UserX, CheckCircle, XCircle, ClipboardList, RefreshCw, Download,
 } from "lucide-react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 
